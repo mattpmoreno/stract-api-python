@@ -1,0 +1,10 @@
+[project]
+name = "stract-api-python"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "openapi-generator-cli>=7.27.0",
+]

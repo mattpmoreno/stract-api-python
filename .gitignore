@@ -1,0 +1,61 @@
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# Secrets / env files
+.env*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.hypothesis/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Packaging / build artifacts
+/build
+/dist
+*.egg-info/
+*.egg
+.eggs/
+wheels/
+pip-wheel-metadata/
+MANIFEST
+
+# Test / coverage
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+
+# uv: keep uv.lock committed (do not ignore it)
+
+# OpenAPI generator working dirs
+/input
+/output
+.openapi-generator/
+
+# Logs
+*.log
+
+# Node (openapi-generator-cli via npm)
+node_modules

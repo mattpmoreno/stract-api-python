@@ -1,0 +1,27 @@
+version = 1
+revision = 5
+requires-python = ">=3.13"
+
+[[package]]
+name = "openapi-generator-cli"
+version = "7.27.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/8a/904a3b7ef01d4e251ce1c9522f6daa063e8939eb4def33dad95cfb0ebb5f/openapi_generator_cli-7.27.0.tar.gz", hash = "sha256:f7b8989353031df78a0f9317a22066a5ec7eb80330c2e6e7ad1288068b0bc756", size = 29690004, upload-time = "2026-11-03T05:40:05.041Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ee/83/9c8a3ed63a7a518447e0e03728552c2a939342383c9aea0a6950899be3dc/openapi_generator_cli-7.27.0-py3-none-any.whl", hash = "sha256:0e5b8b2894ebcd775250b1b1b6cae82d6405532dff74ab66b68766edfa59a576", size = 29704286, upload-time = "2026-11-03T05:40:01.277Z" },
+]
+
+[[package]]
+name = "stract-api-python"
+version = "0.1.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "openapi-generator-cli" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "openapi-generator-cli", specifier = ">=7.27.0" }]
