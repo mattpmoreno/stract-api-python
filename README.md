@@ -301,6 +301,27 @@ uv run main.py   # download the live spec and regenerate output/
 
 `main.py` saves the spec to `input/openapi.yaml` and runs the generator with the options in `openapi-generator-config.yaml`.
 
+### Tests
+
+The tests in `tests/test_sdk.py` follow the flows in this README: authentication, structs and fields, synchronous text and file jobs, a batch job, error handling, and the `asyncio.to_thread` pattern. They import the generated SDK straight from `output/`, so run `uv run main.py` first if `output/` doesn't exist.
+
+Most tests call the live API and use a small amount of credits. They create a uniquely named struct and archive it when the run ends, and the batch test deletes the document it uploads.
+
+1. Create a `.env` file in the repo root (it is git-ignored):
+
+   ```
+   STRACT_API_KEY=your-api-key
+   ```
+
+2. Run the tests:
+
+   ```bash
+   uv sync
+   uv run pytest
+   ```
+
+Without `STRACT_API_KEY`, the live tests are skipped and only the offline tests run. The batch test can take a few minutes, because it polls until the job completes. To skip it, run `uv run pytest -k "not batch"`. A synchronous test is also skipped if the API returns `202` because the job outlasted the sync wait time.
+
 ## Support
 
 Questions, or need a file type that isn't supported? Contact [matt@stract-api.com](mailto:matt@stract-api.com).
