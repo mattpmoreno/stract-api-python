@@ -10,6 +10,7 @@ ROOT = Path(__file__).parent
 SPEC_PATH = ROOT / "input" / "openapi.yaml"
 OUTPUT_DIR = ROOT / "output"
 CONFIG_PATH = ROOT / "openapi-generator-config.yaml"
+TEMPLATE_DIR = ROOT / "templates"  # overrides for the generator's built-in templates
 
 
 def fetch_spec() -> Path:
@@ -34,6 +35,7 @@ def generate(spec: Path) -> None:
         "-g", "python",
         "-o", str(OUTPUT_DIR),
         "-c", str(CONFIG_PATH),
+        "-t", str(TEMPLATE_DIR),
     ]
     print("Running:", " ".join(cmd))
     subprocess.run(cmd, check=True)
