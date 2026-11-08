@@ -22,7 +22,8 @@ API_KEY = os.environ.get("STRACT_API_KEY")
 
 requires_key = pytest.mark.skipif(not API_KEY, reason="STRACT_API_KEY not set in .env")
 
-BATCH_TIMEOUT_SECONDS = 300
+BATCH_TIMEOUT_SECONDS = 120
+REQUEST_TIMEOUT_SECONDS = 30
 POLL_INTERVAL_SECONDS = 5
 
 
@@ -189,28 +190,40 @@ def test_batch_job_flow(client, struct):
     jobs = stract_api.JobApi(client)
 
     doc = documents.upload_document_no_catalog(
-        file=("order-1044.txt", b"One hamburger and two milkshakes")
+        file=("order-1044.txt", b"One hamburger and two milkshakes"),
+        _request_timeout=REQUEST_TIMEOUT_SECONDS,
     )
     try:
         job = jobs.create_job(
             struct.id,
             stract_api.CreateJobRequest(additional_instructions="", document_ids=[doc.id]),
+            _request_timeout=REQUEST_TIMEOUT_SECONDS,
         )
+        print(f"\nbatch job {job.id}: created with status={job.status.value}, is_complete={job.is_complete}")
 
+        terminal = {
+            stract_api.JobStatus.COMPLETE,
+            stract_api.JobStatus.ERROR,
+            stract_api.JobStatus.CANCELLED,
+        }
         deadline = time.monotonic() + BATCH_TIMEOUT_SECONDS
         current = job
-        while not current.is_complete:
-            assert time.monotonic() < deadline, "Batch job did not finish in time"
+        while not current.is_complete and current.status not in terminal:
+            assert time.monotonic() < deadline, (
+                f"Batch job did not finish in {BATCH_TIMEOUT_SECONDS}s; "
+                f"last status={current.status.value}, notes={current.notes!r}"
+            )
             time.sleep(POLL_INTERVAL_SECONDS)
-            current = jobs.get_job_by_id(job.id)
+            current = jobs.get_job_by_id(job.id, _request_timeout=REQUEST_TIMEOUT_SECONDS)
+            print(f"batch job {job.id}: status={current.status.value}, is_complete={current.is_complete}")
 
-        assert current.status == stract_api.JobStatus.COMPLETE
+        assert current.status == stract_api.JobStatus.COMPLETE, f"Job ended as {current.status.value}: {current.notes!r}"
 
-        records = jobs.get_job_output_json(job.id)
+        records = jobs.get_job_output_json(job.id, _request_timeout=REQUEST_TIMEOUT_SECONDS)
         assert len(records) == 1
         assert "hamburgers" in records[0].additional_properties
     finally:
-        documents.delete_document(doc.id)
+        documents.delete_document(doc.id, _request_timeout=REQUEST_TIMEOUT_SECONDS)
 
 
 # --------------------------------------------------------------------------
