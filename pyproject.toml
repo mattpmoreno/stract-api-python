@@ -7,4 +7,16 @@ dependencies = []
 [dependency-groups]
 dev = [
     "openapi-generator-cli>=7.27.0",
+    "pytest>=9.0.3",
+    "python-dotenv>=1.0.0",
+    # Runtime dependencies of the generated SDK in output/
+    "urllib3>=2.7.0,<3.0.0",
+    "python-dateutil>=2.8.2",
+    "pydantic>=2.11",
+    "typing-extensions>=4.7.1",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Import the generated SDK straight from output/ without installing it
+pythonpath = ["output"]
