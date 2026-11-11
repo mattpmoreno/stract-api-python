@@ -1,12 +1,21 @@
 """Fetch the Stract OpenAPI spec and generate the Python SDK from it."""
+import os
 import shutil
 import subprocess
 import sys
 import urllib.request
 from pathlib import Path
 
-SPEC_URL = "https://api.stract-api.com/spec/openapi.yaml"
+from dotenv import load_dotenv
+
 ROOT = Path(__file__).parent
+load_dotenv(ROOT / ".env")
+
+# Where to fetch the spec from. Set STRACT_API_BASE_URL (e.g. staging) in .env to
+# generate from a not-yet-deployed spec; unset, the production spec is used.
+# Every deployment's spec is expected to list production in its `servers:` block.
+SPEC_BASE_URL = os.environ.get("STRACT_API_BASE_URL") or "https://api.stract-api.com"
+SPEC_URL = f"{SPEC_BASE_URL.rstrip('/')}/spec/openapi.yaml"
 SPEC_PATH = ROOT / "input" / "openapi.yaml"
 OUTPUT_DIR = ROOT / "output"
 CONFIG_PATH = ROOT / "openapi-generator-config.yaml"
