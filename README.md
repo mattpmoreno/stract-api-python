@@ -330,7 +330,9 @@ The package is published to [PyPI](https://pypi.org/project/stract-api/) by the 
 
 PyPI never accepts the same version twice, so every release needs a new version number.
 
-1. Set the new version in `openapi-generator-config.yaml`:
+1. Create a new branch for the release.
+
+2. Set the new version in `openapi-generator-config.yaml`:
 
    ```yaml
    packageVersion: 0.2.0
@@ -338,7 +340,7 @@ PyPI never accepts the same version twice, so every release needs a new version 
 
    Bump the patch version for fixes, the minor version for new endpoints or fields, and the major version for breaking changes. The SDK version is independent of the API spec version.
 
-2. Regenerate locally and run the tests:
+3. Regenerate locally and run the tests:
 
    ```bash
    uv run main.py
@@ -347,9 +349,9 @@ PyPI never accepts the same version twice, so every release needs a new version 
 
    Check that `output/pyproject.toml` shows the new version and `license = { text = "MIT" }`, and that `output/LICENSE` exists.
 
-3. Commit the change and merge it to `main`.
+4. Commit the change and merge the branch into `main`.
 
-4. Tag the release commit on `main` and push the tag. The tag name should match `packageVersion`, with a `v` in front:
+5. Tag the release commit on `main` and push the tag. The tag name should match `packageVersion`, with a `v` in front:
 
    ```bash
    git checkout main
