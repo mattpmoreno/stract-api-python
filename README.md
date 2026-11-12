@@ -322,6 +322,45 @@ Most tests call the live API and use a small amount of credits. They create a un
 
 Without `STRACT_API_KEY`, the live tests are skipped and only the offline tests run. The batch test can take a few minutes, because it polls until the job completes. To skip it, run `uv run pytest -k "not batch"`. A synchronous test is also skipped if the API returns `202` because the job outlasted the sync wait time.
 
+## Publishing
+
+The package is published to [PyPI](https://pypi.org/project/stract-api/) by the GitHub Actions workflow in `.github/workflows/publish.yml`. The workflow regenerates the SDK from the production spec, builds `output/`, and uploads it using PyPI [trusted publishing](https://docs.pypi.org/trusted-publishers/), so no API token is stored anywhere.
+
+### Releasing a new version
+
+PyPI never accepts the same version twice, so every release needs a new version number.
+
+1. Set the new version in `openapi-generator-config.yaml`:
+
+   ```yaml
+   packageVersion: 0.2.0
+   ```
+
+   Bump the patch version for fixes, the minor version for new endpoints or fields, and the major version for breaking changes. The SDK version is independent of the API spec version.
+
+2. Regenerate locally and run the tests:
+
+   ```bash
+   uv run main.py
+   uv run pytest
+   ```
+
+   Check that `output/pyproject.toml` shows the new version and `license = { text = "MIT" }`, and that `output/LICENSE` exists.
+
+3. Commit the change and merge it to `main`.
+
+4. Tag the release commit on `main` and push the tag. The tag name should match `packageVersion`, with a `v` in front:
+
+   ```bash
+   git checkout main
+   git pull
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
+
+If a release is broken, don't try to re-upload it. Fix the problem, bump the version, and 
+release again. You can also yank the bad version on pypi.org so that installers skip it.0
+
 ## Support
 
 Questions, or need a file type that isn't supported? Contact [matt@stract-api.com](mailto:matt@stract-api.com).
