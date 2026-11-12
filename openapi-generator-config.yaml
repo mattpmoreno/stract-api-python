@@ -5,3 +5,12 @@ projectName: stract-api-python
 packageVersion: 0.1.0
 library: urllib3
 generateSourceCodeOnly: false
+
+# --- Publishing metadata: replace every ALL-CAPS placeholder below ---
+gitHost: github.com
+gitUserId: mattpmoreno
+gitRepoId: stract-api-python
+appDescription: Python SDK for Stract API
+infoName: Matt @ Stract API
+infoEmail: matt@stract-api.com
+licenseInfo: MIT
