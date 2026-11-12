@@ -48,6 +48,8 @@ def generate(spec: Path) -> None:
     ]
     print("Running:", " ".join(cmd))
     subprocess.run(cmd, check=True)
+    # Ship the MIT license with the package (referenced by license-files in pyproject).
+    shutil.copyfile(ROOT / "LICENSE", OUTPUT_DIR / "LICENSE")
 
 
 if __name__ == "__main__":
