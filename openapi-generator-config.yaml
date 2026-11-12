@@ -13,3 +13,4 @@ gitRepoId: stract-api-python
 appDescription: Python SDK for Stract API
 infoName: Matt @ Stract API
 infoEmail: matt@stract-api.com
+licenseInfo: MIT
