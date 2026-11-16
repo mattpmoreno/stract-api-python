@@ -52,18 +52,64 @@ def struct(client):
     created = structs.create_struct(
         stract_api.CreateStructRequest(name=f"sdk-test-{uuid.uuid4().hex[:8]}")
     )
-    stract_api.FieldApi(client).create_fields(
-        created.id,
-        [
-            stract_api.CreateFieldRequest(
-                name="hamburgers",
-                description="Number of hamburgers the customer ordered",
-                type=stract_api.FieldType.NUMBER,
-            )
-        ],
-    )
-    yield created
-    structs.archive_struct(created.id)
+    # try/finally covers a failure in create_fields, not just in the tests.
+    try:
+        stract_api.FieldApi(client).create_fields(
+            created.id,
+            [
+                stract_api.CreateFieldRequest(
+                    name="hamburgers",
+                    description="Number of hamburgers the customer ordered",
+                    type=stract_api.FieldType.NUMBER,
+                )
+            ],
+        )
+        yield created
+    finally:
+        structs.archive_struct(created.id)
+
+
+@pytest.fixture
+def job_cleanup(client):
+    """Register jobs created indirectly (e.g. by the sync endpoints) for cleanup.
+
+    Usage: `job_cleanup(job_id)`. On teardown each job is cancelled if it is
+    still running, then its documents are looked up, the job is archived and
+    the documents deleted.
+    Every step runs even if an earlier one fails; failures are reported at the end.
+    """
+    jobs = stract_api.JobApi(client)
+    documents = stract_api.DocumentApi(client)
+    job_ids = []
+
+    def register(job_id):
+        job_ids.append(uuid.UUID(str(job_id)))
+
+    yield register
+
+    failures = []
+    for job_id in job_ids:
+        try:
+            job = jobs.get_job_by_id(job_id)
+            if not job.is_complete and job.status not in TERMINAL_STATUSES:
+                jobs.cancel_job(job_id)
+        except ApiException as exc:
+            failures.append(f"cancel job {job_id}: {exc}")
+        doc_ids = []
+        try:
+            doc_ids = [d.id for d in documents.get_documents_for_job(job_id)]
+        except ApiException as exc:
+            failures.append(f"list documents of job {job_id}: {exc}")
+        try:
+            jobs.archive_job(job_id)
+        except ApiException as exc:
+            failures.append(f"archive job {job_id}: {exc}")
+        for doc_id in doc_ids:
+            try:
+                documents.delete_document(doc_id)
+            except ApiException as exc:
+                failures.append(f"delete document {doc_id}: {exc}")
+    assert not failures, "Test cleanup failed:\n" + "\n".join(failures)
 
 
 def sync_text_request(name="order-1042", text="Two hamburgers and a large fries"):
@@ -151,9 +197,12 @@ def test_struct_has_created_field(client, struct):
 # --------------------------------------------------------------------------
 
 @requires_key
-def test_sync_text_job_with_http_info(client, struct):
+def test_sync_text_job_with_http_info(client, struct, job_cleanup):
     jobs = stract_api.JobApi(client)
     res = jobs.upload_text_document_and_run_job_with_http_info(struct.id, sync_text_request())
+    # Register before asserting so a failed assertion or skip still cleans up.
+    if res.headers.get("stract-job-id"):
+        job_cleanup(res.headers["stract-job-id"])
 
     assert res.status_code in (200, 202)
     # Both statuses carry the job ID header, per the README.
@@ -169,7 +218,7 @@ def test_sync_text_job_with_http_info(client, struct):
 
 
 @requires_key
-def test_sync_file_job_with_http_info(client, struct):
+def test_sync_file_job_with_http_info(client, struct, job_cleanup):
     jobs = stract_api.JobApi(client)
     res = jobs.upload_document_process_and_run_job_with_http_info(
         struct.id,
@@ -177,6 +226,8 @@ def test_sync_file_job_with_http_info(client, struct):
         additional_instructions="",
         output_type="json",
     )
+    if res.headers.get("stract-job-id"):
+        job_cleanup(res.headers["stract-job-id"])
 
     assert res.status_code in (200, 202)
     assert res.headers["stract-job-id"]
@@ -201,6 +252,7 @@ def test_batch_job_flow(client, struct):
         file=("order-1044.txt", b"One hamburger and two milkshakes"),
         _request_timeout=REQUEST_TIMEOUT_SECONDS,
     )
+    job = None
     try:
         job = jobs.create_job(
             struct.id,
@@ -231,7 +283,11 @@ def test_batch_job_flow(client, struct):
         assert len(records) == 1
         assert "hamburgers" in records[0].additional_properties
     finally:
-        documents.delete_document(doc.id, _request_timeout=REQUEST_TIMEOUT_SECONDS)
+        try:
+            if job is not None:
+                jobs.archive_job(job.id, _request_timeout=REQUEST_TIMEOUT_SECONDS)
+        finally:
+            documents.delete_document(doc.id, _request_timeout=REQUEST_TIMEOUT_SECONDS)
 
 
 # --------------------------------------------------------------------------
@@ -326,9 +382,11 @@ def finished_job(client, struct):
         )
         yield done, doc
     finally:
-        if job is not None:
-            jobs.archive_job(job.id)
-        documents.delete_document(doc.id)
+        try:
+            if job is not None:
+                jobs.archive_job(job.id)
+        finally:
+            documents.delete_document(doc.id)
 
 
 # --------------------------------------------------------------------------
@@ -663,10 +721,12 @@ def test_job_create_cancel_archive(client, struct):
         # If the job was fast enough to finish before the cancel landed, that's fine too.
         assert cancelled.status in TERMINAL_STATUSES
     finally:
-        if job is not None:
-            archived_id = jobs.archive_job(job.id)
-            assert archived_id == job.id
-        documents.delete_document(doc.id)
+        try:
+            if job is not None:
+                archived_id = jobs.archive_job(job.id)
+                assert archived_id == job.id
+        finally:
+            documents.delete_document(doc.id)
 
 
 @requires_key
@@ -693,15 +753,17 @@ def test_job_over_catalog(client, struct):
         # Don't pay for the analysis; the point is that the catalog was accepted.
         jobs.cancel_job(job.id, _request_timeout=REQUEST_TIMEOUT_SECONDS)
     finally:
-        if job is not None:
-            jobs.archive_job(job.id)
-        catalogs.delete_catalog(catalog.id)
+        try:
+            if job is not None:
+                jobs.archive_job(job.id)
+        finally:
+            catalogs.delete_catalog(catalog.id)
 
     assert catalog.id not in {c.id for c in catalogs.get_catalogs()}
 
 
 # --------------------------------------------------------------------------
-# Error handling on unknown IDs
+# Error handling on unknown  IDs
 # --------------------------------------------------------------------------
 
 @requires_key
