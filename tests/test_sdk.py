@@ -763,7 +763,7 @@ def test_job_over_catalog(client, struct):
 
 
 # --------------------------------------------------------------------------
-# Error handling on unknown IDs
+# Error handling on unknown  IDs
 # --------------------------------------------------------------------------
 
 @requires_key
