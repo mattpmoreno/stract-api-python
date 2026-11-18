@@ -340,7 +340,9 @@ PyPI never accepts the same version twice, so every release needs a new version 
 
    Bump the patch version for fixes, the minor version for new endpoints or fields, and the major version for breaking changes. The SDK version is independent of the API spec version.
 
-3. Regenerate locally and run the tests:
+3. Add tests as necessary
+
+4. Regenerate locally and run the tests:
 
    ```bash
    uv run main.py
@@ -349,9 +351,9 @@ PyPI never accepts the same version twice, so every release needs a new version 
 
    Check that `output/pyproject.toml` shows the new version and `license = { text = "MIT" }`, and that `output/LICENSE` exists.
 
-4. Commit the change and merge the branch into `main`.
+5. Commit the change and merge the branch into `main`.
 
-5. Tag the release commit on `main` and push the tag. The tag name should match `packageVersion`, with a `v` in front:
+6. Tag the release commit on `main` and push the tag. The tag name should match `packageVersion`, with a `v` in front:
 
    ```bash
    git checkout main
