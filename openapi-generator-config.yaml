@@ -2,7 +2,7 @@
 # Full list: openapi-generator-cli config-help -g python
 packageName: stract_api
 projectName: stract-api-python
-packageVersion: 0.10.0
+packageVersion: 0.10.1
 library: urllib3
 generateSourceCodeOnly: false
 
