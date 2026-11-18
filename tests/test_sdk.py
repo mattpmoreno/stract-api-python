@@ -640,6 +640,119 @@ def test_file_document_no_catalog_lifecycle(client):
 
 
 # --------------------------------------------------------------------------
+# Documents from a URL: upload a source file, use its presigned link as the URL
+# --------------------------------------------------------------------------
+
+@pytest.fixture
+def presigned_url(client):
+    """A presigned https URL for a freshly uploaded text file.
+
+    The source document is deleted on teardown. Function-scoped so the link
+    cannot expire between tests.
+    """
+    documents = stract_api.DocumentApi(client)
+    source = documents.upload_document_no_catalog(
+        file=(f"{unique('sdk-url-source')}.txt", b"Eight hamburgers and a root beer"),
+        _request_timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+    try:
+        link = documents.get_document_link(source.id, _request_timeout=REQUEST_TIMEOUT_SECONDS).link
+        assert link.startswith("https://")
+        yield link
+    finally:
+        documents.delete_document(source.id)
+
+
+@requires_key
+def test_upload_document_from_url_to_catalog(client, presigned_url):
+    catalogs = stract_api.CatalogApi(client)
+    documents = stract_api.DocumentApi(client)
+
+    catalog = catalogs.create_catalog(stract_api.CreateCatalogRequest(name=unique("sdk-url-catalog")))
+    try:
+        doc = documents.upload_document_from_url(
+            catalog.id,
+            stract_api.UploadDocumentFromUrlRequest(url=presigned_url, filename="from-url.txt"),
+            _request_timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        assert doc.catalog_id == catalog.id
+        assert doc.extension.lstrip(".") == "txt"
+        assert doc.id in {d.id for d in documents.get_catalog_documents(catalog.id)}
+        assert documents.get_document_link(doc.id).link.startswith("http")
+    finally:
+        # Deleting the catalog also deletes the uploaded document.
+        catalogs.delete_catalog(catalog.id)
+
+    assert catalog.id not in {c.id for c in catalogs.get_catalogs()}
+
+
+@requires_key
+def test_upload_document_from_url_no_catalog(client, presigned_url):
+    documents = stract_api.DocumentApi(client)
+    doc = documents.upload_document_from_url_no_catalog(
+        stract_api.UploadDocumentFromUrlRequest(url=presigned_url, filename="from-url.txt"),
+        _request_timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+    try:
+        assert doc.extension.lstrip(".") == "txt"
+        assert doc.id in {d.id for d in documents.get_user_documents()}
+        assert documents.get_document_link(doc.id).link.startswith("http")
+    finally:
+        removed = documents.delete_document(doc.id)
+    assert removed.document_id == doc.id
+    assert doc.id not in {d.id for d in documents.get_user_documents()}
+
+
+@requires_key
+def test_upload_document_from_url_without_filename(client, presigned_url):
+    """With no filename, the name and extension come from the URL or its headers."""
+    documents = stract_api.DocumentApi(client)
+    doc = documents.upload_document_from_url_no_catalog(
+        stract_api.UploadDocumentFromUrlRequest(url=presigned_url),
+        _request_timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+    try:
+        assert doc.extension.lstrip(".") == "txt"
+    finally:
+        documents.delete_document(doc.id)
+
+
+@requires_key
+def test_upload_document_from_url_rejects_non_https(client):
+    documents = stract_api.DocumentApi(client)
+    created = None
+    try:
+        with pytest.raises(ApiException) as exc:
+            created = documents.upload_document_from_url_no_catalog(
+                stract_api.UploadDocumentFromUrlRequest(url="http://stract-api.com/file.txt"),
+                _request_timeout=REQUEST_TIMEOUT_SECONDS,
+            )
+        assert exc.value.status == 400
+    finally:
+        # Only runs a delete if the API wrongly accepted the request.
+        if created is not None:
+            documents.delete_document(created.id)
+
+
+@requires_key
+def test_upload_document_from_url_to_unknown_catalog(client, presigned_url):
+    documents = stract_api.DocumentApi(client)
+    created = None
+    try:
+        with pytest.raises(ApiException) as exc:
+            created = documents.upload_document_from_url(
+                uuid.uuid4(),
+                stract_api.UploadDocumentFromUrlRequest(url=presigned_url, filename="from-url.txt"),
+                _request_timeout=REQUEST_TIMEOUT_SECONDS,
+            )
+        assert exc.value.status in (400, 401, 404)
+    finally:
+        # Only runs a delete if the API wrongly accepted the request.
+        if created is not None:
+            documents.delete_document(created.id)
+
+
+# --------------------------------------------------------------------------
 # Jobs: read endpoints over one finished job (fixture archives it afterwards)
 # --------------------------------------------------------------------------
 
