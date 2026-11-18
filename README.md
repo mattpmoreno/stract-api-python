@@ -53,7 +53,7 @@ with stract_api.ApiClient(config) as client:
 | `FieldApi` | `create_fields`, `get_fields`, `edit_field`, `delete_field` |
 | `JobApi` | `upload_text_document_and_run_job`, `upload_document_process_and_run_job`, `create_job`, `get_job_by_id`, `get_job_output_json`, `get_job_output_csv`, `get_struct_jobs`, `get_user_jobs`, `cancel_job`, `archive_job` |
 | `JobDocumentApi` | `get_job_documents`, `get_job_document_output` |
-| `DocumentApi` | `upload_document`, `upload_document_no_catalog`, `upload_text_document`, `upload_text_document_no_catalog`, `get_user_documents`, `get_catalog_documents`, `get_documents_for_job`, `get_document_text`, `get_document_link`, `delete_document` |
+| `DocumentApi` | `upload_document`, `upload_document_no_catalog`, `upload_document_from_url`, `upload_document_from_url_no_catalog`, `upload_text_document`, `upload_text_document_no_catalog`, `get_user_documents`, `get_catalog_documents`, `get_documents_for_job`, `get_document_text`, `get_document_link`, `delete_document` |
 | `CatalogApi` | `create_catalog`, `get_catalogs`, `delete_catalog` |
 | `LlmModelApi` | `get_llm_models` |
 | `CreditsApi` | `get_current_credits`, `get_current_org_credits` |
@@ -353,7 +353,9 @@ PyPI never accepts the same version twice, so every release needs a new version 
 
 5. Commit the change and merge the branch into `main`.
 
-6. Tag the release commit on `main` and push the tag. The tag name should match `packageVersion`, with a `v` in front:
+6. Make sure the API has been deployed to production. The publish workflow regenerates the SDK from the production spec, so the release must not be tagged until the production API includes the changes the new SDK version relies on.
+
+7. Tag the release commit on `main` and push the tag. The tag name should match `packageVersion`, with a `v` in front:
 
    ```bash
    git checkout main
@@ -363,7 +365,7 @@ PyPI never accepts the same version twice, so every release needs a new version 
    ```
 
 If a release is broken, don't try to re-upload it. Fix the problem, bump the version, and 
-release again. You can also yank the bad version on pypi.org so that installers skip it.0
+release again. You can also yank the bad version on pypi.org so that installers skip it.
 
 ## Support
 
